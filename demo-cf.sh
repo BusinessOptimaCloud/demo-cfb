@@ -161,9 +161,21 @@ aws ecs create-task-set \
 
 }
 
-echo "Please Select ..."
+# Bold High Intensity
+BIBlack='\033[1;90m'      # Black
+BIRed='\033[1;91m'        # Red
+BIGreen='\033[1;92m'      # Green
+BIYellow='\033[1;93m'     # Yellow
+BIBlue='\033[1;94m'       # Blue
+BIPurple='\033[1;95m'     # Purple
+BICyan='\033[1;96m'       # Cyan
+BIWhite='\033[1;97m'      # White
+
+echo "Please Select..."
 while true;
 do
+
+	echo -en "${BIGreen} !!! Welcome to PK Demo on Cloud Foundation!!! ${BIWhite} \n"
 	echo -e "1: Creating EC2 Instance(VM)"
 	echo -e "2: Creating EC2 Instance with Single Demo App"
 	echo -e "3: Mount S3 Storage to EC2 Instance"
@@ -171,8 +183,8 @@ do
 	echo -e "5: EC2 Instance Demo App with Load Balancer, Auto Scaling"
 	echo -e "6: Destroy Demo App"
 	echo -e "7: Creating ECS Cluster and Deploy Demo APp"
-	echo -e "8: Quit from the script"
-	echo -e "PRESS ENTER TO EXIT"
+	echo -e "${BIRed}8: Quit from the script${BIWhite} \n"
+	echo -en "${BIRed} PRESS ENTER TO EXIT ${BIWhite} \n"
   read INPUT_STRING
   case $INPUT_STRING in
 	1)
