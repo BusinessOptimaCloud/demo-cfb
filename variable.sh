@@ -8,3 +8,5 @@ subid='subnet-0d0270077596be3a6'
 region='ap-south-1'
 app='/root/demo-cfb/app-deploy.txt'
 efsendpointip=172.31.44.144
+bucketname='businessoptima'
+taskdefinition='sentiment:2'

@@ -189,25 +189,25 @@ ecs-cluster () {
 #    --name "MyCapacityProvider" \
 #    --auto-scaling-group-provider "autoScalingGroupArn=arn:aws:autoscaling:ap-south-1:123456789012:autoScalingGroup:57ffcb94-11f0-4d6d-bf60-3bac5EXAMPLE:autoScalingGroupName/MyASG,managedScaling={status=ENABLED,targetCapacity=100},managedTerminationProtection=ENABLED"
 
-aws ecs create-cluster --cluster-name MyCluster --region us-east-1
+aws ecs create-cluster --cluster-name MyCluster --region ${region}
 
 aws ecs create-service \
     --cluster MyCluster \
     --service-name MyService \
-    --task-definition sample-fargate:1 \
+    --task-definition ${taskdefinition} \
     --desired-count 2 \
     --launch-type FARGATE \
     --platform-version LATEST \
-    --network-configuration "awsvpcConfiguration={subnets=[subnet-0993c7614890bd82a],securityGroups=[sg-0e166017f500eab8e],assignPublicIp=ENABLED}" \
-    --region us-east-1
+    --network-configuration "awsvpcConfiguration={subnets=[${subid}],securityGroups=[${sgid}],assignPublicIp=ENABLED}" \
+    --region ${region}
 
 
 aws ecs create-task-set \
     --cluster MyCluster \
     --service MyService \
-    --task-definition senti-app \
-    --network-configuration "awsvpcConfiguration={subnets=[subnet-0993c7614890bd82a],securityGroups=[sg-0e166017f500eab8e]} --region us-east-1"
-
+    --task-definition ${taskdefinition} \
+    --network-configuration "awsvpcConfiguration={subnets=[${subid}],securityGroups=[${sgid}]}" \
+    --region ${region}
 }
 
 creatingefs () {
@@ -298,6 +298,75 @@ fi
 
 }
 
+s3bucket () {
+echo -e "Please enter the bucket name to be ecreated"
+read bucketname
+aws s3 mb s3://${bucketname} --region ${region}
+echo ""
+sleep 0.4
+echo "Listing all the available Buckets"
+echo ""
+aws s3 ls
+echo "Listing ${bucketname} bucket"
+echo ""
+sleep 0.3
+echo ""
+aws s3 ls s3://${bucketname}
+echo ""
+count=`aws s3 ls s3://${bucketname}|wc -l`
+echo ""
+if [ $count = 0 ]; then
+echo "${bucketname} Bucket is empty now"
+fi
+}
+
+s3push () {
+echo -e "Please enter the bucket name where the files need to be pushed"
+read bucketname
+echo -e "Please enter the full file path to upload to S3 / Press enter to upload a sample file"
+read s3file
+if [ "${s3file}" == "" ]; then
+echo "Creating Sample file and Uploading"
+echo "Cloud Foundation Demos" >> /tmp/sample-cloud-foundation-demo.txt
+s3file='/tmp/sample-cloud-foundation-demo.txt'
+else
+echo Uploading file: ${s3file}
+fi
+if [ "${bucketname}" == "" ]; then
+bucketname='businessoptima'
+fi
+
+aws s3 cp ${s3file} s3://${bucketname}/
+}
+
+lists3 () {
+	echo ""
+	echo "Please Enter Bucket name to be listed"
+	read bucketname
+	if [ "${bucketname}" == "" ]; then
+		bucketname='businessoptima'
+	fi
+
+aws s3 ls s3://${bucketname}/
+
+}
+
+syncs3 () {
+	echo ""
+        echo "Please Enter Bucket name where demo files to be synced / Enter for default bucket"
+        read bucketname
+        if [ "${bucketname}" == "" ]; then
+                bucketname='businessoptima'
+        fi
+	mkdir /tmp/s3-demo-sync
+	for dat in $(seq 20220801 20220831)
+	do
+	echo "$dat" >> /tmp/s3-demo-sync/out-$dat.log
+	done
+	cd "/tmp/s3-demo-sync/"
+	aws s3 sync . s3://${bucketname}/s3-demo-sync/
+}
+
 # Bold High Intensity
 BIBlack='\033[1;90m'      # Black
 BIRed='\033[1;91m'        # Red
@@ -310,10 +379,14 @@ BIWhite='\033[1;97m'      # White
 
 echo "Please Select..."
 echo ""
+#echo "Please Press enter for option"
 while true;
 do
-
-	echo -en "${BIGreen} !!! Welcome to PK Demo on Cloud Foundation!!! ${BICyan} \n"
+	echo ""
+	echo -e "${BIYellow}Please Press enter for option${BIWhite}"
+	read opt
+	echo ""
+	echo -en "${BIGreen} 			!!! Welcome to PK Demo on Cloud Foundation!!! ${BICyan} \n"
 	echo ""
 	echo -e "1: Creating EC2 Instance(VM)"
 	echo""
@@ -334,6 +407,14 @@ do
         echo -e "9: Creating EFS file system"
 	echo ""
 	echo -e "10: Mounting User Created EFS file system"
+	echo ""
+	echo -e "11: Creating S3 Bucket"
+	echo ""
+	echo -e "12: Creating files and pushing/copying Sample files to S3 Bucket"
+	echo ""
+	echo -e "13: Listing the S3 bucket"
+	echo ""
+	echo -e "14: Syncing files to S3 bucket"
 	echo ""
 	echo -e "${BIRed}0 Press zero to quit from the script${BIWhite} \n"
 	echo ""
@@ -372,7 +453,7 @@ do
 		continue;
 		;;
 	8)	echo "Creating ECS Cluster and Deploy App"
-		insertingdata;
+		ecs-cluster;
 		continue;
 		;;
 	9)	echo "Creating EFS file system"
@@ -381,6 +462,22 @@ do
 		;;
 	10)	echo "Mounting Created EFS file system to a EC2 Instance"
 		mountinguserefs
+		continue;
+		;;
+	11)	echo "Creating S3 Bucket"
+		s3bucket
+		continue;
+		;;
+	12)	echo "Creating files and pushing/copying Sample files to S3 Bucket"
+		s3push
+		continue;
+		;;
+	13) 	echo "Listing the S3 bucket"
+		lists3
+		continue;
+		;;
+	14) 	echo "Syncing the files to S3"
+		syncs3
 		continue;
 		;;
 	0)	esac
