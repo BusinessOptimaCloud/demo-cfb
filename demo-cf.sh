@@ -111,6 +111,7 @@ fi
 	ssh -i ${key} ubuntu@${ip} sudo mkdir /root/.aws/
 	ssh -i ${key} ubuntu@${ip} sudo ln -s /home/ubuntu/.aws/credentials /root/.aws/credentials
 	ssh -i ${key} ubuntu@${ip} mkdir /home/ubuntu/s3-mount/
+	ssh -i ${key} ubuntu@${ip} umount /home/ubuntu/s3-mount/
 	ssh -i ${key} ubuntu@${ip} s3fs ${bucket} /home/ubuntu/s3-mount/
 	ssh -i ${key} ubuntu@${ip} df -h
 	echo "Listing S3 Mount Path in remote instance"
@@ -133,10 +134,21 @@ key='/root/jenkins_ec2.pem'
 #ip=`ec2 describe-instances  --region ap-south-1|grep PrivateIpAddress |cut -d'"' -f4|sort -u|tail -1`
 echo "Enter the IP where S3 needs to be mounted"
 read ip
+if [  "$ip" == "" ]; then
+echo "Default IP Applied"
+sleep 0.3
+sudo apt install nfs-common -y
+sudo mkdir /efs-data-store/
+sudo umount /efs-data-store/
+sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport ${efsendpointip}:/ /efs-data-store/
+ls -lrt /efs-data-store/
+else
 	ssh -i ${key} ubuntu@${ip} sudo apt install nfs-common -y
 	ssh -i ${key} ubuntu@${ip} sudo mkdir /efs-data-store/
-	sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport 172.31.44.144:/ /efs-data-store/
+	ssh -i ${key} ubuntu@${ip} sudo umount /efs-data-store/
+	ssh -i ${key} ubuntu@${ip} sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport 172.31.44.144:/ /efs-data-store/
         ssh -i ${key} ubuntu@${ip} ls -ltr /efs-data-store/; df -h
+fi
 }
 
 terraformdeploy () {
@@ -202,26 +214,87 @@ creatingefs () {
 echo "Enter EFS File system name"
 read efsname
 aws efs create-file-system \
---encrypted \
---creation-token FileSystemForDemo \
 --tags Key=Name,Value=${efsname} \
 --region ${region} \
 --profile default
 
-#aws efs put-lifecycle-configuration \
-#--file-system-id fs-c657c8bf \
-#--lifecycle-policies TransitionToIA=AFTER_30_DAYS \
-#--region us-west-2 \
-#--profile adminuser
+#--encrypted \
+#--creation-token FileSystemForDemo \
+echo "Please enter the file system id"
+read filesystemid
 
-filesystemid=`aws efs describe-file-systems |grep ${efsname} -B5|grep FileSystemId|cut -d'"' -f4`
-$ aws efs create-mount-target \
+if [  "$filesystemid" == "" ]; then
+filesystemid=`aws efs describe-file-systems |grep ${efsname} -B5|grep FileSystemId|cut -d'"' -f4|head -1`
+echo "Taking filesystem id automatically"
+sleep 0.3
+fi
+
+
+#filesystemid=`aws efs describe-file-systems |grep ${efsname} -B5|grep FileSystemId|cut -d'"' -f4|head -1`
+
+aws efs put-lifecycle-configuration \
+--file-system-id ${filesystemid} \
+--lifecycle-policies TransitionToIA=AFTER_30_DAYS \
+--region ${region} \
+--profile default
+
+aws efs create-mount-target \
 --file-system-id ${filesystemid} \
 --subnet-id  ${subid} \
 --security-group ${sgid} \
 --region ${region} \
 --profile default
 
+aws efs describe-mount-targets \
+--file-system-id ${filesystemid} \
+--profile default \
+--region ${region}
+
+
+}
+
+mountinguserefs () {
+key='/root/jenkins_ec2.pem'
+#ip=`ec2 describe-instances  --region ap-south-1|grep PrivateIpAddress |cut -d'"' -f4|sort -u|tail -1`
+echo "Please enter the server IP where the EFS to be mounted"
+read ip
+echo "Please enter the EFS Endpoint IP"
+read efsendpointip
+
+
+if [[  "$efsendpointip" == "" ]] && [[  "$ip" == "" ]]; then
+echo "Default Endpoint IP Applied"
+sleep 0.3
+sudo apt install nfs-common -y
+sudo mkdir /efs-data-store1/
+sudo mkdir /efs-data-store/
+sudo umount /efs-data-store1/ -f
+sudo umount /efs-data-store/ -f
+sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport ${efsendpointip}:/ /efs-data-store1/
+fi
+
+if [[  "$efsendpointip" == "" ]] | [[  "$ip" == "" ]] ; then
+echo "Default Endpoint IP Applied"
+sleep 0.3
+ssh -i ${key} ubuntu@${ip} sudo apt install nfs-common -y
+ssh -i ${key} ubuntu@${ip} sudo mkdir /efs-data-store1/
+ssh -i ${key} ubuntu@${ip} sudo umount /efs-data-store1/ -f
+ssh -i ${key} ubuntu@${ip} sudo umount /efs-data-store/ -f
+sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport ${efsendpointip}:/ /efs-data-store1/
+ssh -i ${key} ubuntu@${ip} ls -ltr /efs-data-store1/; df -h
+else
+	echo "CUSTOM"
+ssh -i ${key} ubuntu@${ip} sudo apt install nfs-common -y
+ssh -i ${key} ubuntu@${ip} sudo mkdir /efs-data-store1/
+ssh -i ${key} ubuntu@${ip} sudo umount /efs-data-store1/ -f
+ssh -i ${key} ubuntu@${ip} sudo umount /efs-data-store/ -f
+
+ssh -i ${key} ubuntu@${ip} sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport ${efsendpointip}:/ /efs-data-store1/
+sleep 0.5;
+ssh -i ${key} ubuntu@${ip} sudo ls -ltr /efs-data-store1/
+ssh -i ${key} ubuntu@${ip} sudo df -h
+#sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport 172.31.43.242:/ /efs-data-store1/
+fi
 
 }
 
@@ -260,7 +333,7 @@ do
 	echo ""
         echo -e "9: Creating EFS file system"
 	echo ""
-	echo -e "10: Mounting EFS file system"
+	echo -e "10: Mounting User Created EFS file system"
 	echo ""
 	echo -e "${BIRed}0 Press zero to quit from the script${BIWhite} \n"
 	echo ""

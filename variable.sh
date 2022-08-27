@@ -7,3 +7,4 @@ sgid='sg-07fc867927cc40d18'
 subid='subnet-0d0270077596be3a6'
 region='ap-south-1'
 app='/root/demo-cfb/app-deploy.txt'
+efsendpointip=172.31.44.144
