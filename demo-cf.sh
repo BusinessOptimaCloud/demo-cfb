@@ -1,6 +1,8 @@
 #!/bin/bash
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games"
-source /root/variable.sh
+source /root/demo-cfb/variable.sh
+source /root/demo-cfb/demo-cfb/variable.sh
+
 
 if [ -f ~/.ssh/id_rsa.pub ]; then
 	echo ""
@@ -15,14 +17,21 @@ read inscount
 if [  "$inscount" == "" ]; then
 inscount=1
 fi
-aws ec2 run-instances --image-id ami-068257025f72f470d --count ${inscount} --instance-type t2.micro --key-name jenkins_ec2 --security-group-ids sg-07fc867927cc40d18 --subnet-id subnet-0d0270077596be3a6 --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=DemoInstance}]' --region ap-south-1
+echo -e "Instance Count ${inscount}"
+for count in $(seq 1 ${inscount}); do
+	aws ec2 run-instances --image-id ${ami} --count 1 --instance-type ${itype} --key-name ${keyname} --security-group-ids ${sgid} --subnet-id ${subid} --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=DemoInstance-No-'${count}'}]' --region ${region}
+done
+#for count in {1..${inscount}}
+#do
+#aws ec2 run-instances --image-id ${ami} --count 1 --instance-type ${itype} --key-name ${keyname} --security-group-ids ${sgid} --subnet-id ${subid} --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=DemoInstance-No-'${count}'}]' --region ${region}
+#done
 }
 ec2instanceapp () {
 app="/tmp/app-deploy.txt"
 >${app}
 
 cat <<EOF >${app}
-#!/bin/bash
+#!/bin/bash'
 date
 
 apt update && apt install docker.io git -y
