@@ -27,6 +27,8 @@ echo "Enter the number of instance required"
 read inscount
 if [  "$inscount" == "" ]; then
 inscount=1
+echo "Taking default respone as 1"
+sleep 0.3
 fi
 echo -e "Instance Count ${inscount}"
 for count in $(seq 1 ${inscount}); do
@@ -99,6 +101,8 @@ echo "Enter Bucket name to be mounted"
 read bucket
 if [  "$bucket" == "" ]; then
 bucket=businessoptima
+echo "Mounting Default bucket"
+sleep 0.3;
 fi
 	#ssh-copy-id -i ${key} ubuntu@${ip}
 	ssh -i ${key} ubuntu@${ip} 'sudo apt update && sudo apt install awscli s3fs -y'
@@ -118,6 +122,7 @@ s3list () {
 read bucket
 if [  "$bucket" == "" ]; then
 bucket=businessoptima
+echo "Listing default bucket"
 fi
 
 aws s3 ls s3://${bucket}
@@ -193,6 +198,33 @@ aws ecs create-task-set \
 
 }
 
+creatingefs () {
+echo "Enter EFS File system name"
+read efsname
+aws efs create-file-system \
+--encrypted \
+--creation-token FileSystemForDemo \
+--tags Key=Name,Value=${efsname} \
+--region ${region} \
+--profile default
+
+#aws efs put-lifecycle-configuration \
+#--file-system-id fs-c657c8bf \
+#--lifecycle-policies TransitionToIA=AFTER_30_DAYS \
+#--region us-west-2 \
+#--profile adminuser
+
+filesystemid=`aws efs describe-file-systems |grep ${efsname} -B5|grep FileSystemId|cut -d'"' -f4`
+$ aws efs create-mount-target \
+--file-system-id ${filesystemid} \
+--subnet-id  ${subid} \
+--security-group ${sgid} \
+--region ${region} \
+--profile default
+
+
+}
+
 # Bold High Intensity
 BIBlack='\033[1;90m'      # Black
 BIRed='\033[1;91m'        # Red
@@ -204,20 +236,36 @@ BICyan='\033[1;96m'       # Cyan
 BIWhite='\033[1;97m'      # White
 
 echo "Please Select..."
+echo ""
 while true;
 do
 
-	echo -en "${BIGreen} !!! Welcome to PK Demo on Cloud Foundation!!! ${BIWhite} \n"
+	echo -en "${BIGreen} !!! Welcome to PK Demo on Cloud Foundation!!! ${BICyan} \n"
+	echo ""
 	echo -e "1: Creating EC2 Instance(VM)"
+	echo""
 	echo -e "2: Creating EC2 Instance with Single Demo App"
+	echo ""
 	echo -e "3: Mount S3 Storage to EC2 Instance"
+	echo ""
 	echo -e "4: List files in S3 bucket"
-	echo -e "5: Mount EFS to EC2 Instance"
+	echo ""
+	echo -e "5: Mounting Shared EFS drive to a specific EC2 Instance"
+	echo ""
 	echo -e "6: EC2 Instance Demo App with Load Balancer, Auto Scaling"
+	echo ""
 	echo -e "7: Destroy Demo App"
-	echo -e "8: Creating ECS Cluster and Deploy Demo APp"
-	echo -e "${BIRed}8: Quit from the script${BIWhite} \n"
-	echo -en "${BIRed} PRESS ENTER TO EXIT ${BIWhite} \n"
+	echo ""
+	echo -e "8: Creating ECS Cluster and Deploy Demo App"
+	echo ""
+        echo -e "9: Creating EFS file system"
+	echo ""
+	echo -e "10: Mounting EFS file system"
+	echo ""
+	echo -e "${BIRed}0 Press zero to quit from the script${BIWhite} \n"
+	echo ""
+	echo -en "${BIRed}PRESS ENTER TO EXIT from Demo Script${BIWhite} \n"
+	echo ""
   read INPUT_STRING
   case $INPUT_STRING in
 	1)
@@ -254,6 +302,14 @@ do
 		insertingdata;
 		continue;
 		;;
-	9)	esac
+	9)	echo "Creating EFS file system"
+		creatingefs;
+		continue;
+		;;
+	10)	echo "Mounting Created EFS file system to a EC2 Instance"
+		mountinguserefs
+		continue;
+		;;
+	0)	esac
 		break;
 done
