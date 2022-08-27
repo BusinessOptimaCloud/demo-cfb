@@ -5,37 +5,37 @@ apt update && apt install docker.io git -y
 cd "/root/"
 codepath="/root/sentiment-analysis/containerized_webapp/"
 git clone https://github.com/BusinessOptimaCloud/sentiment-analysis.git
-cd 
-cat_image_id=
-if [ =="" ]; then
+cd ${codepath}
+cat_image_id=`docker images | grep -w sentimentapp:ver1 | awk '{print $3}'`
+if [ $cat_image_id=="" ]; then
    continue;
 else
-   docker rmi  -f
+   docker rmi ${cat_image_id} -f
 fi
 
-dockerprocess=0
+dockerprocess=`systemctl status docker|grep Active|grep dead|wc -l`
 
-if [  -eq 1 ]; then
+if [ ${dockerprocess} -eq 1 ]; then
     systemctl restart docker
 fi
 
-docker build -t sentimentapp:ver1 
-cat_image_id=
-container_id=
-docker stop 
-docker rm 
-docker run -itd --name sentimentapp -p 80:5000 
-app_status=0
-public_ip=15.207.51.25
+docker build -t sentimentapp:ver1 ${codepath}
+cat_image_id=`docker images | grep -w sentimentapp | awk '{print $3}'`
+container_id=`docker ps|grep "sentimentapp"|awk '{print $1}'`
+docker stop ${container_id}
+docker rm ${container_id}
+docker run -itd --name sentimentapp -p 80:5000 ${cat_image_id}
+app_status=`docker ps|grep sentimentapp|wc -l`
+public_ip=`curl http://checkip.amazonaws.com`
 
 
 ################################################PLEASE OPEN PORT 80 in EC2 Container#############
-if [  -eq 1 ]; then
-	echo ""
-	echo ""
-	echo "YOUR SENTIMENT APP IS UP AND RUNNING"
-	echo "Please Use the below URL to OPEN SENTIMENT APP"
-	echo -e "http://"
+if [ ${app_status} -eq 1 ]; then
+        echo ""
+        echo ""
+        echo "YOUR SENTIMENT APP IS UP AND RUNNING"
+        echo "Please Use the below URL to OPEN SENTIMENT APP"
+        echo -e "http://${public_ip}"
 else
-	echo "Container not started please check"
+        echo "Container not started please check"
 fi

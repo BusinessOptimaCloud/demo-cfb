@@ -1,7 +1,6 @@
 #!/bin/bash
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games"
 source /root/demo-cfb/variable.sh
-source /root/demo-cfb/demo-cfb/variable.sh
 
 
 if [ -f ~/.ssh/id_rsa.pub ]; then
@@ -27,55 +26,56 @@ done
 #done
 }
 ec2instanceapp () {
-app="/tmp/app-deploy.txt"
->${app}
+#app="/tmp/app-deploy.txt"
+#>${app}
 
-cat <<EOF >${app}
-#!/bin/bash'
-date
-
-apt update && apt install docker.io git -y
-cd "/root/"
-codepath="/root/sentiment-analysis/containerized_webapp/"
-git clone https://github.com/BusinessOptimaCloud/sentiment-analysis.git
-cd ${codepath}
-cat_image_id=`docker images | grep -w sentimentapp:ver1 | awk '{print $3}'`
-if [ $cat_image_id=="" ]; then
-   continue;
-else
-   docker rmi ${cat_image_id} -f
-fi
-
-dockerprocess=`systemctl status docker|grep Active|grep dead|wc -l`
-
-if [ ${dockerprocess} -eq 1 ]; then
-    systemctl restart docker
-fi
-
-docker build -t sentimentapp:ver1 ${codepath}
-cat_image_id=`docker images | grep -w sentimentapp | awk '{print $3}'`
-container_id=`docker ps|grep "sentimentapp"|awk '{print $1}'`
-docker stop ${container_id}
-docker rm ${container_id}
-docker run -itd --name sentimentapp -p 80:5000 ${cat_image_id}
-app_status=`docker ps|grep sentimentapp|wc -l`
-public_ip=`curl http://checkip.amazonaws.com`
-
-
-################################################PLEASE OPEN PORT 80 in EC2 Container#############
-if [ ${app_status} -eq 1 ]; then
-	echo ""
-	echo ""
-	echo "YOUR SENTIMENT APP IS UP AND RUNNING"
-	echo "Please Use the below URL to OPEN SENTIMENT APP"
-	echo -e "http://${public_ip}"
-else
-	echo "Container not started please check"
-fi
-EOF
-
-app="/opt/deployapp.txt"
-aws ec2 run-instances --image-id ami-068257025f72f470d --count 1 --instance-type t2.medium --key-name jenkins_ec2 --security-group-ids sg-07fc867927cc40d18 --subnet-id subnet-0d0270077596be3a6 --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=Senti-App-DemoInstance}]' --user-data file:///${app}  --region ap-south-1
+#cat <<EOF >${app}
+##!/bin/bash'
+#date
+#
+#apt update && apt install docker.io git -y
+#cd "/root/"
+#codepath="/root/sentiment-analysis/containerized_webapp/"
+#git clone https://github.com/BusinessOptimaCloud/sentiment-analysis.git
+#cd ${codepath}
+#cat_image_id=`docker images | grep -w sentimentapp:ver1 | awk '{print $3}'`
+#if [ $cat_image_id=="" ]; then
+#   continue;
+#else
+#   docker rmi ${cat_image_id} -f
+#fi
+#
+#dockerprocess=`systemctl status docker|grep Active|grep dead|wc -l`
+#
+#if [ ${dockerprocess} -eq 1 ]; then
+#    systemctl restart docker
+#fi
+#
+#docker build -t sentimentapp:ver1 ${codepath}
+#cat_image_id=`docker images | grep -w sentimentapp | awk '{print $3}'`
+#container_id=`docker ps|grep "sentimentapp"|awk '{print $1}'`
+#docker stop ${container_id}
+#docker rm ${container_id}
+#docker run -itd --name sentimentapp -p 80:5000 ${cat_image_id}
+#app_status=`docker ps|grep sentimentapp|wc -l`
+#public_ip=`curl http://checkip.amazonaws.com`
+#
+#
+#################################################PLEASE OPEN PORT 80 in EC2 Container#############
+#if [ ${app_status} -eq 1 ]; then
+#	echo ""
+#	echo ""
+#	echo "YOUR SENTIMENT APP IS UP AND RUNNING"
+#	echo "Please Use the below URL to OPEN SENTIMENT APP"
+#	echo -e "http://${public_ip}"
+#else
+#	echo "Container not started please check"
+#fi
+#EOF
+################APP#######
+#aws ec2 run-instances --image-id ${ami} --count 1 --instance-type ${itype} --key-name ${keyname} --security-group-ids ${sgid} --subnet-id ${subid} --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=DemoInstance-No-'${count}'}]' --region ${region}
+echo $app
+#aws ec2 run-instances --image-id ${ami} --count 1 --instance-type t2.medium --key-name ${keyname} --security-group-ids ${sgid} --subnet-id ${subid} --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=Senti-Demo-App}]' --user-data file:///${app}  --region ${region}
 }
 
 s3mount () {
