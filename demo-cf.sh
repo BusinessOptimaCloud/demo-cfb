@@ -341,6 +341,8 @@ aws s3 cp ${s3file} s3://${bucketname}/
 
 lists3 () {
 	echo ""
+	echo "Available Buckets for the User"
+	aws s3 ls
 	echo "Please Enter Bucket name to be listed"
 	read bucketname
 	if [ "${bucketname}" == "" ]; then
@@ -348,7 +350,6 @@ lists3 () {
 	fi
 
 aws s3 ls s3://${bucketname}/
-
 }
 
 syncs3 () {
