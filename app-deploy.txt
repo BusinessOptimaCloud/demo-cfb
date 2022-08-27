@@ -1,0 +1,41 @@
+#!/bin/bash
+date
+
+apt update && apt install docker.io git -y
+cd "/root/"
+codepath="/root/sentiment-analysis/containerized_webapp/"
+git clone https://github.com/BusinessOptimaCloud/sentiment-analysis.git
+cd 
+cat_image_id=
+if [ =="" ]; then
+   continue;
+else
+   docker rmi  -f
+fi
+
+dockerprocess=0
+
+if [  -eq 1 ]; then
+    systemctl restart docker
+fi
+
+docker build -t sentimentapp:ver1 
+cat_image_id=
+container_id=
+docker stop 
+docker rm 
+docker run -itd --name sentimentapp -p 80:5000 
+app_status=0
+public_ip=15.207.51.25
+
+
+################################################PLEASE OPEN PORT 80 in EC2 Container#############
+if [  -eq 1 ]; then
+	echo ""
+	echo ""
+	echo "YOUR SENTIMENT APP IS UP AND RUNNING"
+	echo "Please Use the below URL to OPEN SENTIMENT APP"
+	echo -e "http://"
+else
+	echo "Container not started please check"
+fi
