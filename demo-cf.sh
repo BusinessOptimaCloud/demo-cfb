@@ -1,13 +1,25 @@
 #!/bin/bash
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games"
+cd ${PWD}
+chmod +x *
 source /root/demo-cfb/variable.sh
-
 
 if [ -f ~/.ssh/id_rsa.pub ]; then
 	echo ""
 else
   echo -e "\n\n\n" | ssh-keygen -t rsa
 fi
+
+if [ -f /usr/local/bin/aws ]; then
+        echo "AWS CLI OK"
+else
+	cd /root/
+	curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+	unzip awscliv2.zip
+	sudo ./aws/install
+	rm awscliv2.zip
+fi
+
 
 #key='/root/jenkins_ec2.pem'
 ec2instancecreation () {
@@ -83,10 +95,19 @@ key='/root/jenkins_ec2.pem'
 #ip=`ec2 describe-instances  --region ap-south-1|grep PrivateIpAddress |cut -d'"' -f4|sort -u|tail -1`
 echo "Enter the IP where S3 needs to be mounted"
 read ip
-	ssh -i ${key} ubuntu@${ip} sudo apt install s3fs -y
-	ssh -i ${key} ubuntu@${ip} sudo echo "thomasinnovation /s3-mount/          fuse.s3fs rw,nosuid,nodev,allow_other,umask=0022,connect_timeout=600,readwrite_timeout=300,_netdev 0 0" >> /etc/fstab
-	ssh -i ${key} ubuntu@${ip} sudo mkdir /s3-mount
-	ssh -i ${key} ubuntu@${ip} sudo mount -a
+echo "Enter Bucket name to be mounted"
+read bucket
+if [  "$bucket" == "" ]; then
+bucket=businessoptima
+fi
+	#ssh-copy-id -i ${key} ubuntu@${ip}
+	ssh -i ${key} ubuntu@${ip} 'sudo apt update && sudo apt install awscli s3fs -y'
+	ssh -i ${key} ubuntu@${ip} mkdir /home/ubuntu/.aws/
+	scp -i ${key} ~/.aws/credentials ubuntu@${ip}:/home/ubuntu/.aws/
+	ssh -i ${key} ubuntu@${ip} sudo mkdir /root/.aws/
+	ssh -i ${key} ubuntu@${ip} sudo ln -s /home/ubuntu/.aws/credentials /root/.aws/credentials
+	ssh -i ${key} ubuntu@${ip} mkdir ~/s3-mount/
+	ssh -i ${key} ubuntu@${ip} s3fs ${bucket} ~/s3-mount/
 	ssh -i ${key} ubuntu@${ip} df -h
 	ssh -i ${key} ubuntu@${ip} ls -ltr /s3-mount/
 }
