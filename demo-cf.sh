@@ -390,7 +390,7 @@ ec2snap () {
 	echo "Please Enter the Volume Id"
 	read volid
 	if [ "${volid}" == "" ]; then
-        echo -e "Please Enter the Volume Id, default values are not accepted here"
+        echo -e "Please Enter the Volume Id, default values are not accepted"
         else
 	aws ec2 create-snapshot  --volume-id ${volid} --tag-specifications 'ResourceType=snapshot,Tags=[{Key=Name,Value=ec2-snapshot-'`date +%Y%m%d-%H%M%S`'}]' --region ${region}
 	fi
@@ -406,6 +406,30 @@ elasticip () {
 	fi
 
 }
+assignip() {
+	echo "List of available Instances running in the current Region"
+	aws ec2 describe-instances --filters Name=instance-state-name,Values=running --region ${region}|egrep "PrivateIpAddress|InstanceId"|cut -d: -f1,2|grep -v PrivateIpAddresses|grep InstanceId -A1
+	echo ""
+	echo "List of Available PublicIP in Amazon Pool"
+	aws ec2 describe-addresses|egrep "PublicIp|AllocationId"
+	echo ""
+	echo "Please enter the Instance  Id  where you want to attach Elastic IP"
+	read instanceid
+	echo "Please enter the Public IP"
+	read publicip
+	if [[  "$instanceid" != "" ]] && [[  "$publicip" != "" ]]; then
+		aws ec2 associate-address --instance-id ${instanceid} --public-ip ${publicip}
+	else
+		echo "Please Enter the EC2 Instance Id and the Public IP, default values are not accepted"
+	fi
+}
+
+listingeip() {
+	        echo "List of Available PublicIP in Amazon Pool"
+	        aws ec2 describe-addresses|egrep "PublicIp|AllocationId|InstanceId"
+
+}
+
 # Bold High Intensity
 BIBlack='\033[1;90m'      # Black
 BIRed='\033[1;91m'        # Red
@@ -460,6 +484,10 @@ do
 	echo -e "16: Creating EC2 Volume Snapshot"
 	echo ""
 	echo -e "17: Creating Elastic IP"
+	echo ""
+	echo -e "18: Attaching Elastic IP to an EC2 Instance"
+	echo ""
+	echo -e "19: Listing Available Elastic IP Addess"
 	echo ""
 	echo -e "${BIRed}0 Press zero to quit from the script${BIWhite} \n"
 	echo ""
@@ -535,6 +563,14 @@ do
 		;;
 	17)	echo "Creating Elastic IP"
 		elasticip
+		continue;
+		;;
+	18) 	echo "Assigning Elastic IP"
+		assignip
+		continue;
+		;;
+	19)	echo "Listing Available EIP"
+		listingeip
 		continue;
 		;;
 	0)	esac
