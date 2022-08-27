@@ -91,7 +91,7 @@ aws ec2 run-instances --image-id ${ami} --count 1 --instance-type t2.medium --ke
 }
 
 s3mount () {
-key='/root/jenkins_ec2.pem'
+#key='/root/jenkins_ec2.pem'
 #ip=`ec2 describe-instances  --region ap-south-1|grep PrivateIpAddress |cut -d'"' -f4|sort -u|tail -1`
 echo "Enter the IP where S3 needs to be mounted"
 read ip
@@ -106,12 +106,23 @@ fi
 	scp -i ${key} ~/.aws/credentials ubuntu@${ip}:/home/ubuntu/.aws/
 	ssh -i ${key} ubuntu@${ip} sudo mkdir /root/.aws/
 	ssh -i ${key} ubuntu@${ip} sudo ln -s /home/ubuntu/.aws/credentials /root/.aws/credentials
-	ssh -i ${key} ubuntu@${ip} mkdir ~/s3-mount/
-	ssh -i ${key} ubuntu@${ip} s3fs ${bucket} ~/s3-mount/
+	ssh -i ${key} ubuntu@${ip} mkdir /home/ubuntu/s3-mount/
+	ssh -i ${key} ubuntu@${ip} s3fs ${bucket} /home/ubuntu/s3-mount/
 	ssh -i ${key} ubuntu@${ip} df -h
-	ssh -i ${key} ubuntu@${ip} ls -ltr /s3-mount/
+	echo "Listing S3 Mount Path in remote instance"
+	ssh -i ${key} ubuntu@${ip} ls -ltr /home/ubuntu/s3-mount/
 }
 
+s3list () {
+	echo "Please enter the bucket name to be List"
+read bucket
+if [  "$bucket" == "" ]; then
+bucket=businessoptima
+fi
+
+aws s3 ls s3://${bucket}
+
+}
 efsmount () {
 key='/root/jenkins_ec2.pem'
 #ip=`ec2 describe-instances  --region ap-south-1|grep PrivateIpAddress |cut -d'"' -f4|sort -u|tail -1`
@@ -200,10 +211,11 @@ do
 	echo -e "1: Creating EC2 Instance(VM)"
 	echo -e "2: Creating EC2 Instance with Single Demo App"
 	echo -e "3: Mount S3 Storage to EC2 Instance"
-	echo -e "4: Mount EFS to EC2 Instance"
-	echo -e "5: EC2 Instance Demo App with Load Balancer, Auto Scaling"
-	echo -e "6: Destroy Demo App"
-	echo -e "7: Creating ECS Cluster and Deploy Demo APp"
+	echo -e "4: List files in S3 bucket"
+	echo -e "5: Mount EFS to EC2 Instance"
+	echo -e "6: EC2 Instance Demo App with Load Balancer, Auto Scaling"
+	echo -e "7: Destroy Demo App"
+	echo -e "8: Creating ECS Cluster and Deploy Demo APp"
 	echo -e "${BIRed}8: Quit from the script${BIWhite} \n"
 	echo -en "${BIRed} PRESS ENTER TO EXIT ${BIWhite} \n"
   read INPUT_STRING
@@ -222,22 +234,26 @@ do
 		s3mount;
 		continue;
 		;;
-	4)      echo "Mount EFS to EC2 Instance"
+	4)	echo "List files in S3 bucket"
+		s3list;
+		continue;
+		;;
+	5)      echo "Mount EFS to EC2 Instance"
 	        efsmount;
 		continue;
 		;;
-	5) 	echo "EC2 Instance Demo App with Load Balancer, Auto Scaling"
+	6) 	echo "EC2 Instance Demo App with Load Balancer, Auto Scaling"
 		terraformdeploy;
 		continue;
 		;;
-	6)	echo "Destroy demo app"
+	7)	echo "Destroy demo app"
 		destroydemoapp;
 		continue;
 		;;
-	7)	echo "Creating ECS Cluster and Deploy App"
+	8)	echo "Creating ECS Cluster and Deploy App"
 		insertingdata;
 		continue;
 		;;
-	8)	esac
+	9)	esac
 		break;
 done
