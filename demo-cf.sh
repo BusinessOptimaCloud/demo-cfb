@@ -368,6 +368,44 @@ syncs3 () {
 	aws s3 sync . s3://${bucketname}/s3-demo-sync/
 }
 
+ec2ami () {
+	echo ""
+	echo "Please wait"
+	echo "List of available Instances running in the current Region"
+	aws ec2 describe-instances --filters Name=instance-state-name,Values=running --region ${region}|egrep "PrivateIpAddress|InstanceId"|cut -d: -f1,2|grep -v PrivateIpAddresses|grep InstanceId -A1
+	echo "Please Enter the Instance Id"
+	read instanceid
+	if [ "${instanceid}" == "" ]; then
+	echo -e "Please Enter the EC2 Instance Id, default values are not accepted here"
+	else
+	aws ec2 create-image --instance-id ${instanceid} --name ec2-custom-ami-`date +%Y%m%d-%H%M%s` --region ${region}
+	fi
+}
+
+ec2snap () {
+	echo ""
+	echo "Please wait"
+	echo "List of available Instances running in the current Region"
+	aws ec2 describe-instances --filters Name=instance-state-name,Values=running --region ${region}|egrep "PrivateIpAddress|InstanceId|Vol"|cut -d: -f1,2|grep -v PrivateIpAddresses|grep InstanceId -A2
+	echo "Please Enter the Volume Id"
+	read volid
+	if [ "${volid}" == "" ]; then
+        echo -e "Please Enter the Volume Id, default values are not accepted here"
+        else
+	aws ec2 create-snapshot  --volume-id ${volid} --tag-specifications 'ResourceType=snapshot,Tags=[{Key=Name,Value=ec2-snapshot-'`date +%Y%m%d-%H%M%S`'}]' --region ${region}
+	fi
+}
+
+elasticip () {
+	echo "Please type 'yes' to Create Elastic IP, no to discard"
+	read input
+	if [ "${input}" == "yes" ]; then
+	aws ec2 allocate-address
+	else
+	echo "Bye"
+	fi
+
+}
 # Bold High Intensity
 BIBlack='\033[1;90m'      # Black
 BIRed='\033[1;91m'        # Red
@@ -416,6 +454,12 @@ do
 	echo -e "13: Listing the S3 bucket"
 	echo ""
 	echo -e "14: Syncing files to S3 bucket"
+	echo ""
+	echo -e "15: Creating EC2 AMI"
+	echo ""
+	echo -e "16: Creating EC2 Volume Snapshot"
+	echo ""
+	echo -e "17: Creating Elastic IP"
 	echo ""
 	echo -e "${BIRed}0 Press zero to quit from the script${BIWhite} \n"
 	echo ""
@@ -479,6 +523,18 @@ do
 		;;
 	14) 	echo "Syncing the files to S3"
 		syncs3
+		continue;
+		;;
+	15)	echo "Creating AMI of an EC2 Instance"
+		ec2ami
+		continue;
+		;;
+	16)	echo "Creating Snapshot"
+		ec2snap
+		continue;
+		;;
+	17)	echo "Creating Elastic IP"
+		elasticip
 		continue;
 		;;
 	0)	esac
