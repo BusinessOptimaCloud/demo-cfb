@@ -74,8 +74,8 @@ ec2instanceapp () {
 #EOF
 ################APP#######
 #aws ec2 run-instances --image-id ${ami} --count 1 --instance-type ${itype} --key-name ${keyname} --security-group-ids ${sgid} --subnet-id ${subid} --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=DemoInstance-No-'${count}'}]' --region ${region}
-echo $app
-#aws ec2 run-instances --image-id ${ami} --count 1 --instance-type t2.medium --key-name ${keyname} --security-group-ids ${sgid} --subnet-id ${subid} --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=Senti-Demo-App}]' --user-data file:///${app}  --region ${region}
+#echo $app
+aws ec2 run-instances --image-id ${ami} --count 1 --instance-type t2.medium --key-name ${keyname} --security-group-ids ${sgid} --subnet-id ${subid} --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=Senti-Demo-App}]' --user-data file:///${app}  --region ${region}
 }
 
 s3mount () {
