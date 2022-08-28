@@ -157,7 +157,6 @@ echo "Enter the Server IP"
 #scp -i ${key} /opt/terraformdeploy.sh ubuntu@${ip}:/tmp/ 
 #ssh -i ${key} ubuntu@${ip} cp /tmp/terraformdeploy.sh /root/terraformdeploy.sh
 #ssh -i ${key} ubuntu@${ip} sudo bash -x /root/terraformdeploy.sh
-!/bin/bash
 export PATH=/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/usr/local/bin/
 apt install zip git unzip -y
 cd "/root/"
@@ -170,6 +169,13 @@ cd /root/
 git clone https://github.com/BusinessOptimaCloud/terraform-demo.git
 
 cd /root/terraform-demo/demoapp-deploy/
+#
+#
+ln -sf setup-amazon-linux.sh setup.sh
+
+sed -i 's/ami-.*/'${ami}'"''/g' /root/terraform-demo/demoapp-deploy/variable.tf
+sed -i 's/give-existing-key-pair/'${keyname}'"''/g' /root/terraform-demo/demoapp-deploy/variable.tf
+
 #
 terraform init
 terraform plan
@@ -424,10 +430,66 @@ assignip() {
 	fi
 }
 
-listingeip() {
+listingeip () {
 	        echo "List of Available PublicIP in Amazon Pool"
 	        aws ec2 describe-addresses|egrep "PublicIp|AllocationId|InstanceId"
 
+}
+
+stopec2 () {
+	echo "Please wait"
+	echo "List of available Instances running in the current Region"
+        aws ec2 describe-instances --filters Name=instance-state-name,Values=running --region ${region}|egrep "PrivateIpAddress|InstanceId|Vol"|cut -d: -f1,2|grep -v PrivateIpAddresses|grep InstanceId -A2
+	echo "Please Enter the Instance Id"
+        read instanceid
+        if [ "${instanceid}" == "" ]; then
+        echo -e "Please Enter the EC2 Instance Id, default values are not accepted here"
+	echo "Bye"
+        else
+		aws ec2 stop-instances --instance-ids ${instanceid} --region ${region}
+        fi
+}
+
+startec2 () {
+        echo "Please wait"
+        echo "List of available Instances running in the current Region"
+        aws ec2 describe-instances --region ${region}|egrep "PrivateIpAddress|InstanceId|Vol"|cut -d: -f1,2|grep -v PrivateIpAddresses|grep InstanceId -A2
+        echo "Please Enter the Instance Id"
+        read instanceid
+        if [ "${instanceid}" == "" ]; then
+        echo -e "Please Enter the EC2 Instance Id, default values are not accepted here"
+        echo "Bye"
+        else
+                aws ec2 start-instances --instance-ids ${instanceid} --region ${region}
+        fi
+}
+
+rebootec2 () {
+	        echo "Please wait"
+        echo "List of available Instances running in the current Region"
+        aws ec2 describe-instances --filters Name=instance-state-name,Values=running --region ${region}|egrep "PrivateIpAddress|InstanceId|Vol"|cut -d: -f1,2|grep -v PrivateIpAddresses|grep InstanceId -A2
+        echo "Please Enter the Instance Id"
+        read instanceid
+        if [ "${instanceid}" == "" ]; then
+        echo -e "Please Enter the EC2 Instance Id, default values are not accepted here"
+        echo "Bye"
+        else
+                aws ec2 reboot-instances --instance-ids ${instanceid} --region ${region}
+        fi
+}
+
+terminateec2() {
+	                echo "Please wait"
+        echo "List of available Instances running in the current Region"
+        aws ec2 describe-instances --region ${region}|egrep "PrivateIpAddress|InstanceId|Vol"|cut -d: -f1,2|grep -v PrivateIpAddresses|grep InstanceId -A2
+        echo "Please Enter the Instance Id"
+        read instanceid
+        if [ "${instanceid}" == "" ]; then
+        echo -e "Please Enter the EC2 Instance Id, default values are not accepted here"
+        echo "Bye"
+        else
+                aws ec2 terminate-instances --instance-ids ${instanceid} --region ${region}
+        fi
 }
 
 # Bold High Intensity
@@ -489,6 +551,14 @@ do
 	echo ""
 	echo -e "19: Listing Available Elastic IP Addess"
 	echo ""
+	echo -e "20: Stop EC2 Instance"
+	echo ""
+	echo -e "21: Start EC2 Instance"
+	echo ""
+	echo -e "22: Reboot EC2 Instance"
+	echo ""
+	echo -e "23: Terminate EC2 Instance"
+       	echo ""	
 	echo -e "${BIRed}0 Press zero to quit from the script${BIWhite} \n"
 	echo ""
 	echo -en "${BIRed}PRESS ENTER TO EXIT from Demo Script${BIWhite} \n"
@@ -571,6 +641,22 @@ do
 		;;
 	19)	echo "Listing Available EIP"
 		listingeip
+		continue;
+		;;
+	20)	echo "Stop EC2 Instance"
+		stopec2
+		continue;
+		;;
+	21)	echo "Start EC2 Instance"
+		startec2
+		continue;
+		;;
+	22)	echo "Reboot EC2 Instance"
+		rebootec2
+		continue;
+		;;
+	23)	echo "Terminate EC2 Instance"
+		terminateec2
 		continue;
 		;;
 	0)	esac
